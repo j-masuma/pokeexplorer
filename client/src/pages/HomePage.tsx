@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getPokemonList, searchPokemon } from '../services/api';
 import { PokemonListItem } from '../types/pokemon';
@@ -60,12 +60,23 @@ export const HomePage: React.FC = () => {
         navigate(`/pokemon/${id}`);
     };
 
+    const lastQueryRef = useRef<string>('');
+
     useEffect(() => {
-        if (searchQuery.trim()) {
+        const q = searchQuery.trim();
+
+        // Only perform searches for queries of length >= 2 to avoid excessive calls
+        if (q.length >= 2) {
+        // Dedupe: avoid calling API for the same query repeatedly
+        if (q === lastQueryRef.current) return;
+        lastQueryRef.current = q;
         handleSearch();
-        } else {
+        } else if (q.length === 0) {
+        // If search cleared, load the paginated list and reset lastQuery
+        lastQueryRef.current = '';
         loadPokemons();
         }
+        // If 1-char query, do nothing (no API call)
     }, [currentPage, selectedGeneration, searchQuery]);
 
     return (

@@ -8,9 +8,11 @@ interface SearchBarProps {
 
 export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, placeholder = 'Search Pokémon...' }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  
+  const debouncedSearchTerm = useDebounce(searchTerm, 3000);
 
   useEffect(() => {
+    // console.log(`[SearchBar] debounced search term: "${debouncedSearchTerm}"`);
     onSearch(debouncedSearchTerm);
   }, [debouncedSearchTerm, onSearch]);
 

@@ -12,6 +12,7 @@ interface PokemonListItem {
 export class PokemonService {
     private static async fetchFromPokeAPI(url: string) {
         try {
+        console.log(`[PokeService] Fetching from PokeAPI: ${url}`);
         const response = await axios.get(url);
         return response.data;
         } catch (error) {
@@ -152,8 +153,12 @@ export class PokemonService {
         ]
         });
 
-        if (cached) return cached.data;
+        if (cached) {
+        console.log(`[PokeService] Cache hit for: ${nameOrId}`);
+        return cached.data;
+        }
 
+        console.log(`[PokeService] Cache miss for: ${nameOrId} - fetching from PokeAPI`);
         const data = await this.fetchFromPokeAPI(
         `${POKEAPI_BASE}/pokemon/${nameOrId.toLowerCase()}`
         );
