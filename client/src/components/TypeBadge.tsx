@@ -30,15 +30,9 @@ export const TypeBadge: React.FC<TypeBadgeProps> = ({ type }) => {
   
   return (
     <span
+    className='px-2 py-1 text-white rounded-xl capitalize  text-[12px] font-semibold'
       style={{
         backgroundColor: color,
-        color: 'white',
-        padding: '4px 12px',
-        borderRadius: '20px',
-        fontSize: '12px',
-        fontWeight: 'bold',
-        textTransform: 'capitalize',
-        display: 'inline-block',
       }}
     >
       {type}

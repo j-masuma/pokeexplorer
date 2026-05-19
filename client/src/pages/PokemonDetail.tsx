@@ -5,6 +5,7 @@ import { Pokemon } from '../types/pokemon';
 import { TypeBadge } from '../components/TypeBadge';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { usePokemon } from '../context/PokemonContext';
+import { IoIosHeart, IoIosHeartEmpty } from 'react-icons/io';
 
 export const PokemonDetail: React.FC = () => {
   const { nameOrId } = useParams<{ nameOrId: string }>();
@@ -12,6 +13,7 @@ export const PokemonDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { isFavorite, toggleFavorite } = usePokemon();
   const navigate = useNavigate();
+  const { addToCompare, compareList } = usePokemon();
 
   useEffect(() => {
     if (nameOrId) {
@@ -32,81 +34,81 @@ export const PokemonDetail: React.FC = () => {
   };
 
   const handleCompare = () => {
-    const compareList = JSON.parse(localStorage.getItem('compare_list') || '[]');
-    if (!compareList.includes(pokemon?.id) && compareList.length < 2) {
-      compareList.push(pokemon?.id);
-      localStorage.setItem('compare_list', JSON.stringify(compareList));
-      alert(`${pokemon?.name} added to comparison!`);
-    } else if (compareList.includes(pokemon?.id)) {
-      alert('This Pokemon is already in comparison!');
-    } else {
-      alert('You can only compare up to 2 Pokemon!');
+    if (!pokemon) return;
+
+    if (compareList.includes(pokemon.id)) {
+      alert('Already added!');
+      return;
     }
+
+    if (compareList.length >= 2) {
+      alert('Only 2 Pokémon can be compared');
+      return;
+    }
+
+    addToCompare(pokemon.id);
   };
 
   if (loading) return <LoadingSpinner />;
   if (!pokemon) return <div>Pokemon not found</div>;
 
   const maxStat = 255;
-  const artwork = pokemon.sprites.other['official-artwork'].front_default || pokemon.sprites.front_default;
+  const artwork =
+    pokemon.sprites.other['official-artwork'].front_default ||
+    pokemon.sprites.front_default;
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
+    <div className="max-w-6xl mx-auto px-5 py-5">
+      {/* Back Button */}
       <button
         onClick={() => navigate(-1)}
-        style={{
-          padding: '10px 20px',
-          backgroundColor: '#F08030',
-          color: 'white',
-          border: 'none',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          marginBottom: '20px',
-        }}
+        className="px-5 py-2.5 bg-orange-400 text-white border-none rounded-lg cursor-pointer mb-5 hover:bg-orange-500 transition-colors"
       >
         ← Back
       </button>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
-        {/* Left Column - Images and Basic Info */}
+      <div className="grid grid-cols-2 gap-10">
+        {/* Left Column - Image & Basic Info */}
         <div>
           <img
             src={artwork}
             alt={pokemon.name}
-            style={{ width: '100%', maxWidth: '400px', margin: '0 auto', display: 'block' }}
+            className="w-full max-w-sm mx-auto block"
           />
-          <div style={{ textAlign: 'center', marginTop: '20px' }}>
-            <div style={{ fontSize: '14px', color: '#666' }}>#{String(pokemon.id).padStart(3, '0')}</div>
-            <h1 style={{ textTransform: 'capitalize', margin: '10px 0' }}>{pokemon.name}</h1>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '20px' }}>
+          <div className="text-center mt-5">
+            <div className="text-sm text-gray-500">
+              #{String(pokemon.id).padStart(3, '0')}
+            </div>
+            <h1 className="capitalize my-2.5 text-3xl font-bold">{pokemon.name}</h1>
+            <div className="flex gap-2.5 justify-center mb-5">
               {pokemon.types.map((t) => (
                 <TypeBadge key={t.type.name} type={t.type.name} />
               ))}
             </div>
-            <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
+            <div className="flex gap-5 justify-center">
               <button
                 onClick={() => toggleFavorite(pokemon.id)}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: isFavorite(pokemon.id) ? '#ff0000' : '#F08030',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                }}
+                className={`px-5 py-2.5 text-white border-none rounded-lg cursor-pointer transition-colors ${
+                  isFavorite(pokemon.id)
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-orange-400 hover:bg-orange-500'
+                }`}
               >
-                {isFavorite(pokemon.id) ? '❤️ Remove from Favorites' : '🤍 Add to Favorites'}
+            {isFavorite(pokemon.id) ? (
+            <span className='flex items-center gap-1'>
+                <IoIosHeart className="text-red-900 " size={20} /> 
+                Remove
+            </span>
+            ) : (
+            <span className='flex items-center gap-1'>
+                <IoIosHeartEmpty className="text-white" size={20} />
+                Add
+            </span>
+            )}
               </button>
               <button
                 onClick={handleCompare}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#4CAF50',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                }}
+                className="px-5 py-2.5 bg-green-500 text-white border-none rounded-lg cursor-pointer hover:bg-green-600 transition-colors"
               >
                 🔄 Compare
               </button>
@@ -114,66 +116,67 @@ export const PokemonDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column - Stats and Details */}
-        <div>
-          <div style={{ marginBottom: '30px' }}>
-            <h2>Base Stats</h2>
-            {pokemon.stats.map((stat) => {
-              const percentage = (stat.base_stat / maxStat) * 100;
-              return (
-                <div key={stat.stat.name} style={{ marginBottom: '15px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                    <span style={{ textTransform: 'capitalize', fontWeight: 'bold' }}>
-                      {stat.stat.name.replace('special', 'Sp. ')}
-                    </span>
-                    <span>{stat.base_stat}</span>
-                  </div>
-                  <div style={{ backgroundColor: '#e0e0e0', borderRadius: '10px', overflow: 'hidden' }}>
-                    <div
-                      style={{
-                        width: `${percentage}%`,
-                        height: '30px',
-                        backgroundColor: percentage > 70 ? '#4CAF50' : percentage > 40 ? '#FFC107' : '#F44336',
-                        transition: 'width 0.5s ease',
-                      }}
-                    />
-                  </div>
+        {/* Right Column - Stats & Details */}
+        <div className='flex flex-col justify-between'>
+          {/* Base Stats */}
+        <div className="mb-4">
+        <h2 className="text-lg font-bold mb-3">Base Stats</h2>
+        {pokemon.stats.map((stat) => {
+            const percentage = (stat.base_stat / maxStat) * 100;
+            return (
+            <div key={stat.stat.name} className="mb-4">
+                <div className="flex justify-between mb-1">
+                <span className="capitalize font-semibold text-gray-700 text-sm">
+                    {stat.stat.name.replace('special', 'Sp. ')}
+                </span>
+                <span>{stat.base_stat}</span>
                 </div>
-              );
-            })}
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
-            <div>
-              <h3>Height</h3>
-              <p>{pokemon.height / 10} m</p>
-            </div>
-            <div>
-              <h3>Weight</h3>
-              <p>{pokemon.weight / 10} kg</p>
-            </div>
-          </div>
-
-          <div>
-            <h3>Abilities</h3>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              {pokemon.abilities.map((ability) => (
+                <div className="bg-gray-200 rounded-lg overflow-hidden">
                 <div
-                  key={ability.ability.name}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: ability.is_hidden ? '#FFC107' : '#4CAF50',
-                    color: 'white',
-                    borderRadius: '8px',
-                    textTransform: 'capitalize',
-                  }}
-                >
-                  {ability.ability.name.replace('-', ' ')}
-                  {ability.is_hidden && ' (Hidden)'}
+                    className={`h-3 rounded-lg transition-all duration-500 ease-in-out ${
+                    percentage > 70
+                        ? 'bg-green-500'
+                        : percentage > 40
+                        ? 'bg-yellow-400'
+                        : 'bg-red-500'
+                    }`}
+                    style={{ width: `${percentage}%` }}
+                />
                 </div>
-              ))}
             </div>
-          </div>
+            );
+        })}
+        </div>
+
+          {/* Height & Weight */}
+        <div className="grid grid-cols-2 gap-5 mb-8">
+        <div>
+            <h3 className="font-semibold text-gray-700">Height</h3>
+            <p>{pokemon.height / 10} m</p>
+        </div>
+        <div>
+            <h3 className="font-semibold text-gray-700">Weight</h3>
+            <p>{pokemon.weight / 10} kg</p>
+        </div>
+        </div>
+
+          {/* Abilities */}
+        <div>
+            <h3 className="font-semibold text-gray-700 mb-2">Abilities</h3>
+            <div className="flex gap-2.5 flex-wrap">
+                {pokemon.abilities.map((ability) => (
+                <div
+                    key={ability.ability.name}
+                    className={`px-4 py-2 text-white rounded-lg capitalize ${
+                    ability.is_hidden ? 'bg-yellow-400' : 'bg-green-500'
+                    }`}
+                >
+                    {ability.ability.name.replace('-', ' ')}
+                    {ability.is_hidden && ' (Hidden)'}
+                </div>
+                ))}
+            </div>
+            </div>
         </div>
       </div>
     </div>

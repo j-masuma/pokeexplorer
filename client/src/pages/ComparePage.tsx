@@ -4,44 +4,42 @@ import { getPokemonDetails } from '../services/api';
 import { Pokemon } from '../types/pokemon';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { TypeBadge } from '../components/TypeBadge';
+import { usePokemon } from '../context/PokemonContext';
 
 export const ComparePage: React.FC = () => {
+  const { compareList, clearCompare } = usePokemon();
   const [pokemons, setPokemons] = useState<(Pokemon | null)[]>([null, null]);
   const [loading, setLoading] = useState(true);
-//   const navigate = useNavigate();
+  // const navigate = useNavigate();
 
- 
+  const loadCompareList = async () => {
+    setLoading(true);
+    try {
+      const loadedPokemons = await Promise.all(
+        compareList.map(async (id) => {
+          try {
+            return await getPokemonDetails(id.toString());
+          } catch {
+            return null;
+          }
+        })
+      );
 
-    const loadCompareList = async () => {
-        setLoading(true);
-        try {
-        const compareIds = JSON.parse(localStorage.getItem('compare_list') || '[]');
-        const loadedPokemons = await Promise.all(
-            compareIds.map(async (id: number) => {
-            try {
-                return await getPokemonDetails(id.toString());
-            } catch {
-                return null;
-            }
-            })
-        );
-        while (loadedPokemons.length < 2) loadedPokemons.push(null);
-        setPokemons(loadedPokemons);
-        } catch (error) {
-        console.error('Error loading compare list:', error);
-        } finally {
-        setLoading(false);
-        }
-    };
+      while (loadedPokemons.length < 2) {
+        loadedPokemons.push(null);
+      }
 
-  const clearComparison = () => {
-    localStorage.setItem('compare_list', JSON.stringify([]));
-    setPokemons([null, null]);
+      setPokemons(loadedPokemons);
+    } catch (error) {
+      console.error('Error loading compare list:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getStatValue = (pokemon: Pokemon | null, statName: string): number => {
     if (!pokemon) return 0;
-    const stat = pokemon.stats.find(s => s.stat.name === statName);
+    const stat = pokemon.stats.find((s) => s.stat.name === statName);
     return stat?.base_stat || 0;
   };
 
@@ -53,57 +51,52 @@ export const ComparePage: React.FC = () => {
   const statNames = ['hp', 'attack', 'defense', 'special-attack', 'special-defense', 'speed'];
   const statLabels = ['HP', 'Attack', 'Defense', 'Sp. Atk', 'Sp. Def', 'Speed'];
 
-   useEffect(() => {
+  useEffect(() => {
     loadCompareList();
-  }, []);
+  }, [compareList]);
 
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1>Compare Pokémon</h1>
+    <div className="max-w-6xl mx-auto px-5 py-5">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-5">
+        <h1 className="text-3xl font-bold">Compare Pokémon</h1>
         <button
-          onClick={clearComparison}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: '#f44336',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-          }}
+          onClick={clearCompare}
+          className="px-5 py-2.5 bg-red-500 text-white border-none rounded-lg cursor-pointer hover:bg-red-600 transition-colors"
         >
           Clear Comparison
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+      {/* Pokémon Cards Grid */}
+      <div className="grid grid-cols-2 gap-10">
         {[0, 1].map((index) => (
-          <div key={index} style={{ border: '1px solid #e0e0e0', borderRadius: '12px', padding: '20px' }}>
+          <div key={index} className="border border-gray-200 rounded-xl p-5">
             {pokemons[index] ? (
               <>
                 <img
                   src={pokemons[index]!.sprites.front_default}
                   alt={pokemons[index]!.name}
-                  style={{ width: '150px', margin: '0 auto', display: 'block' }}
+                  className="w-36 mx-auto block"
                 />
-                <h2 style={{ textAlign: 'center', textTransform: 'capitalize' }}>
+                <h2 className="text-center capitalize text-xl font-semibold mt-2">
                   #{String(pokemons[index]!.id).padStart(3, '0')} {pokemons[index]!.name}
                 </h2>
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '20px' }}>
+                <div className="flex gap-2 justify-center mb-5">
                   {pokemons[index]!.types.map((t) => (
                     <TypeBadge key={t.type.name} type={t.type.name} />
                   ))}
                 </div>
-                <div style={{ marginBottom: '20px' }}>
+                <div className="mb-5 space-y-1 text-sm">
                   <p><strong>Height:</strong> {pokemons[index]!.height / 10} m</p>
                   <p><strong>Weight:</strong> {pokemons[index]!.weight / 10} kg</p>
                   <p><strong>Total Stats:</strong> {getTotalStats(pokemons[index])}</p>
                 </div>
               </>
             ) : (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              <div className="text-center py-10 text-gray-500">
                 No Pokémon selected
               </div>
             )}
@@ -111,51 +104,41 @@ export const ComparePage: React.FC = () => {
         ))}
       </div>
 
+      {/* Stat Comparison */}
       {pokemons[0] && pokemons[1] && (
-        <div style={{ marginTop: '40px' }}>
-          <h2>Stat Comparison</h2>
+        <div className="mt-10">
+          <h2 className="text-xl font-semibold mb-4">Stat Comparison</h2>
           {statNames.map((statName, idx) => {
             const val1 = getStatValue(pokemons[0], statName);
             const val2 = getStatValue(pokemons[1], statName);
             const maxVal = Math.max(val1, val2, 255);
-            
+
             return (
-              <div key={statName} style={{ marginBottom: '20px' }}>
-                <h3>{statLabels[idx]}</h3>
-                <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ backgroundColor: '#e0e0e0', borderRadius: '10px', overflow: 'hidden' }}>
+              <div key={statName} className="mb-5">
+                <h3 className="font-semibold mb-1">{statLabels[idx]}</h3>
+                <div className="flex gap-5 items-center">
+                  {/* Bar for Pokémon 1 */}
+                  <div className="flex-1">
+                    <div className="bg-gray-200 rounded-lg overflow-hidden">
                       <div
-                        style={{
-                          width: `${(val1 / maxVal) * 100}%`,
-                          height: '40px',
-                          backgroundColor: val1 >= val2 ? '#4CAF50' : '#FFC107',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'flex-end',
-                          paddingRight: '10px',
-                          color: 'white',
-                          fontWeight: 'bold',
-                        }}
+                        className={`h-5 flex items-center justify-end pr-2.5 text-white text-sm rounded-lg transition-all ${
+                          val1 >= val2 ? 'bg-green-500' : 'bg-yellow-400'
+                        }`}
+                        style={{ width: `${(val1 / maxVal) * 100}%` }}
                       >
                         {val1}
                       </div>
                     </div>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ backgroundColor: '#e0e0e0', borderRadius: '10px', overflow: 'hidden' }}>
+
+                  {/* Bar for Pokémon 2 */}
+                  <div className="flex-1">
+                    <div className="bg-gray-200 rounded-lg overflow-hidden">
                       <div
-                        style={{
-                          width: `${(val2 / maxVal) * 100}%`,
-                          height: '40px',
-                          backgroundColor: val2 >= val1 ? '#4CAF50' : '#FFC107',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'flex-end',
-                          paddingRight: '10px',
-                          color: 'white',
-                          fontWeight: 'bold',
-                        }}
+                        className={`h-5 flex items-center justify-end pr-2.5 text-sm text-white rounded-lg transition-all ${
+                          val2 >= val1 ? 'bg-green-500' : 'bg-yellow-400'
+                        }`}
+                        style={{ width: `${(val2 / maxVal) * 100}%` }}
                       >
                         {val2}
                       </div>
