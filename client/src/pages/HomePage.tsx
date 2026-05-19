@@ -12,6 +12,7 @@ export const HomePage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
     const [selectedGeneration, setSelectedGeneration] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -23,6 +24,7 @@ export const HomePage: React.FC = () => {
         const data = await getPokemonList(currentPage, 20, selectedGeneration);
         setPokemons(data.pokemons);
         setTotalPages(data.totalPages);
+        setTotalCount(data.total);
         } catch (error) {
         console.error('Error loading pokemons:', error);
         } finally {
@@ -32,7 +34,7 @@ export const HomePage: React.FC = () => {
 
     const handleSearch = async () => {
         if (!searchQuery.trim()) {
-        loadPokemons();
+        await loadPokemons();
         return;
         }
         setLoading(true);
@@ -40,6 +42,7 @@ export const HomePage: React.FC = () => {
         const results = await searchPokemon(searchQuery, selectedGeneration);
         setPokemons(results);
         setTotalPages(1);
+        setTotalCount(results.length);
         } catch (error) {
         console.error('Error searching:', error);
         } finally {
@@ -57,17 +60,13 @@ export const HomePage: React.FC = () => {
         navigate(`/pokemon/${id}`);
     };
 
-     useEffect(() => {
-        loadPokemons();
-    }, [currentPage, selectedGeneration]);
-
     useEffect(() => {
-        if (searchQuery) {
+        if (searchQuery.trim()) {
         handleSearch();
         } else {
         loadPokemons();
         }
-    }, [searchQuery, selectedGeneration]);
+    }, [currentPage, selectedGeneration, searchQuery]);
 
     return (
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
@@ -87,25 +86,32 @@ export const HomePage: React.FC = () => {
             </div>
         ) : (
             <>
+            <div className='flex justify-between items-center px-5 md:px-0'>
+                <div className='text-sm text-gray-600'>
+                Total Pokémon: {totalCount}
+                </div>
+                {!searchQuery && (
+                <div className='text-sm text-gray-600'>
+                    Page {currentPage} of {totalPages}
+                </div>
+                )}
+            </div>
             <PokemonGrid
                 pokemons={pokemons}
                 onPokemonClick={handlePokemonClick}
             />
 
             {!searchQuery && (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '20px' }}>
+                <div className="flex justify-center gap-4 mt-6">
                 <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
                     className="px-5 py-2 bg-[#F08030] text-white rounded-lg font-bold disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                     Prev
                 </button>
-                <span className="px-5 py-2 font-bold">
-                    Page {currentPage} of {totalPages}
-                </span>
                 <button
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
                     className="px-5 py-2 bg-[#F08030] text-white rounded-lg font-bold disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >

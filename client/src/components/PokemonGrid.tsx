@@ -6,13 +6,19 @@ import { usePokemon } from '../context/PokemonContext';
 interface PokemonGridProps {
   pokemons: PokemonListItem[];
   onPokemonClick: (id: number) => void;
+  favorites?: number[];
+  onToggleFavorite?: (id: number) => void;
 }
 
 export const PokemonGrid: React.FC<PokemonGridProps> = ({
   pokemons,
   onPokemonClick,
+  favorites,
+  onToggleFavorite,
 }) => {
-    const { favorites, toggleFavorite } = usePokemon();
+    const { favorites: contextFavorites, toggleFavorite } = usePokemon();
+    const activeFavorites = favorites ?? contextFavorites;
+    const activeToggleFavorite = onToggleFavorite ?? toggleFavorite;
 
   return (
     <div
@@ -27,8 +33,8 @@ export const PokemonGrid: React.FC<PokemonGridProps> = ({
         <PokemonCard
           key={pokemon.id}
           pokemon={pokemon}
-          isFavorite={favorites.includes(pokemon.id)}
-          onToggleFavorite={() => toggleFavorite(pokemon.id)}
+          isFavorite={activeFavorites.includes(pokemon.id)}
+          onToggleFavorite={() => activeToggleFavorite(pokemon.id)}
           onClick={() => onPokemonClick(pokemon.id)}
         />
       ))}

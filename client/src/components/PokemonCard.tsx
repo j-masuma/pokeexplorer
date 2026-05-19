@@ -2,7 +2,6 @@ import React from 'react';
 import { PokemonListItem } from '../types/pokemon';
 import { TypeBadge } from './TypeBadge';
 import { IoIosHeart, IoIosHeartEmpty } from 'react-icons/io';
-import { usePokemon } from '../context/PokemonContext';
 
 interface PokemonCardProps {
   pokemon: PokemonListItem;
@@ -13,11 +12,12 @@ interface PokemonCardProps {
 
 export const PokemonCard: React.FC<PokemonCardProps> = ({
   pokemon,
+  isFavorite,
+  onToggleFavorite,
   onClick,
 }) => {
   const spriteUrl = pokemon.data.sprites?.front_default ||
     `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.id}.png`;
-  const { isFavorite, toggleFavorite } = usePokemon();
 
   return (
     <div
@@ -43,7 +43,7 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          toggleFavorite(pokemon.id);
+          onToggleFavorite();
         }}
         style={{
           position: 'absolute',
@@ -53,10 +53,10 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
           border: 'none',
           fontSize: '24px',
           cursor: 'pointer',
-          color: isFavorite(pokemon.id) ? '#ff0000' : '#cccccc',
+          color: isFavorite ? '#ff0000' : '#cccccc',
         }}
       >
-        {isFavorite(pokemon.id) ? <IoIosHeart className='text-red-600' /> : <IoIosHeartEmpty />}
+        {isFavorite ? <IoIosHeart className='text-red-600' /> : <IoIosHeartEmpty />}
 
       </button>
 

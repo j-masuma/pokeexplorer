@@ -50,6 +50,26 @@ export class PokemonService {
         );
     }
 
+    private static async fetchGenerationSpecies(generation: number) {
+        const response = await this.fetchFromPokeAPI(
+        `${POKEAPI_BASE}/generation/${generation}`
+        );
+
+        return response.pokemon_species.map((species: any) => ({
+        name: species.name,
+        url: `${POKEAPI_BASE}/pokemon/${species.name}`
+        }));
+    }
+
+    private static async fetchPokemonDetailsByName(name: string) {
+        const cached = await PokemonCache.findOne({ name });
+        if (cached) return cached;
+
+        const details = await this.fetchFromPokeAPI(`${POKEAPI_BASE}/pokemon/${name}`);
+        await this.cachePokemonData(details);
+        return await PokemonCache.findOne({ name });
+    }
+
     static async getPokemonList(page = 1, limit = 20, generation?: number) {
         let query: any = {};
 
@@ -62,7 +82,32 @@ export class PokemonService {
         .skip((page - 1) * limit)
         .limit(limit);
 
-        if (cachedPokemons.length < limit && !generation) {
+        if (generation && generation !== 0) {
+        const species = await this.fetchGenerationSpecies(generation);
+        const total = species.length;
+        const pagedSpecies = species.slice((page - 1) * limit, page * limit);
+
+        const detailedPokemons = await Promise.all(
+            pagedSpecies.map(async (item: PokemonListItem) => {
+            const existing = await PokemonCache.findOne({ name: item.name });
+            if (existing) return existing;
+
+            const details = await this.fetchFromPokeAPI(item.url);
+            await this.cachePokemonData(details);
+
+            return await PokemonCache.findOne({ name: item.name });
+            })
+        );
+
+        return {
+            pokemons: detailedPokemons.filter(Boolean),
+            total,
+            page,
+            totalPages: Math.ceil(total / limit)
+        };
+        }
+
+        if (cachedPokemons.length < limit) {
         const offset = (page - 1) * limit;
 
         const response = await this.fetchFromPokeAPI(
@@ -118,17 +163,40 @@ export class PokemonService {
     }
 
     static async searchPokemon(query: string, generation?: number) {
-        let searchQuery: any = {
-            name: { $regex: query, $options: "i" }
-        };
+        const regex = new RegExp(query, 'i');
 
         if (generation && generation !== 0) {
-            searchQuery.generation = generation;
+        const species = await this.fetchGenerationSpecies(generation);
+        const matchingNames = species
+            .filter((item: PokemonListItem) => regex.test(item.name))
+            .map((item: PokemonListItem) => item.name);
+
+        const cachedResults = await PokemonCache.find({
+            name: { $in: matchingNames }
+        })
+        .sort({ id: 1 })
+        .limit(50);
+
+        const missingNames = matchingNames.filter(
+            (name: string) => !cachedResults.some((pokemon) => pokemon.name === name)
+        );
+
+        const fetchedResults = await Promise.all(
+            missingNames.slice(0, 50 - cachedResults.length).map(async (name: string) => {
+            const details = await this.fetchFromPokeAPI(`${POKEAPI_BASE}/pokemon/${name}`);
+            await this.cachePokemonData(details);
+            return await PokemonCache.findOne({ name });
+            })
+        );
+
+        return [...cachedResults, ...fetchedResults.filter(Boolean)];
         }
 
-        const results = await PokemonCache.find(searchQuery)
-            .sort({ id: 1 })
-            .limit(50);
+        const results = await PokemonCache.find({
+        name: { $regex: query, $options: 'i' }
+        })
+        .sort({ id: 1 })
+        .limit(50);
 
         return results;
     }

@@ -9,7 +9,7 @@ import { usePokemon } from '../context/PokemonContext';
 export const FavoritesPage: React.FC = () => {
   const [favoritePokemons, setFavoritePokemons] = useState<PokemonListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const { favorites, toggleFavorite } = usePokemon();
+  const { favorites } = usePokemon();
   const navigate = useNavigate();
 
   const loadFavorites = async () => {
@@ -53,8 +53,6 @@ export const FavoritesPage: React.FC = () => {
       ) : (
         <PokemonGrid
           pokemons={favoritePokemons}
-          favorites={favorites}
-          onToggleFavorite={toggleFavorite}
           onPokemonClick={(id) => navigate(`/pokemon/${id}`)}
         />
       )}
